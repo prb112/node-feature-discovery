@@ -33,10 +33,14 @@ have the following format.
 feature.node.kubernetes.io/<feature> = <value>
 ```
 
-*Note: Consecutive runs of nfd-worker will update the labels on a
+> NOTE: Consecutive runs of nfd-worker will update the labels on a
 given node. If features are not discovered on a consecutive run, the corresponding
 label will be removed. This includes any restrictions placed on the consecutive run,
-such as restricting discovered features with the -label-whitelist option.*
+such as restricting discovered features with the
+[`-label-whitelist`](../reference/master-commandline-reference#-label-whitelist)
+flag of nfd-master or
+[`core.labelWhiteList`](../reference/worker-configuration-reference#corelabelwhitelist)
+option of nfd-worker.
 
 ### CPU
 
@@ -44,6 +48,7 @@ such as restricting discovered features with the -label-whitelist option.*
 | ----------------------- | ------------ | -----------
 | **`cpu-cpuid.<cpuid-flag>`**      | true   | CPU capability is supported. **NOTE:** the capability might be supported but not enabled.
 | **`cpu-hardware_multithreading`** | true   | Hardware multithreading, such as Intel HTT, enabled (number of logical CPUs is greater than physical CPUs)
+| **`cpu-coprocessor.nx_gzip`**     | true   | Nest Accelerator for GZIP is supported(Power).
 | **`cpu-power.sst_bf.enabled`**    | true   | Intel SST-BF ([Intel Speed Select Technology][intel-sst] - Base frequency) enabled
 | **`cpu-pstate.status`**           | string | The status of the [Intel pstate][intel-pstate] driver when in use and enabled, either 'active' or 'passive'.
 | **`cpu-pstate.turbo`**            | bool   | Set to 'true' if turbo frequencies are enabled in Intel pstate driver, set to 'false' if they have been disabled.
@@ -75,6 +80,7 @@ configuration options for details.
 | AVXVNNI            | AVX (VEX encoded) VNNI neural network instructions
 | AMXBF16            | Advanced Matrix Extension, tile multiplication operations on BFLOAT16 numbers
 | AMXINT8            | Advanced Matrix Extension, tile multiplication operations on 8-bit integers
+| AMXFP16            | Advanced Matrix Extension, tile multiplication operations on FP16 numbers
 | AMXTILE            | Advanced Matrix Extension, base tile architecture support
 | AVX512BF16         | AVX-512 BFLOAT16 instructions
 | AVX512BITALG       | AVX-512 bit Algorithms
@@ -92,9 +98,14 @@ configuration options for details.
 | AVX512VNNI         | AVX-512 vector neural network instructions
 | AVX512VP2INTERSECT | AVX-512 intersect for D/Q
 | AVX512VPOPCNTDQ    | AVX-512 vector population count doubleword and quadword
+| AVXIFMA            | AVX-IFMA instructions
+| AVXNECONVERT       | AVX-NE-CONVERT instructions
+| AVXVNNIINT8        | AVX-VNNI-INT8 instructions
+| CMPCCXADD          | CMPCCXADD instructions
 | ENQCMD             | Enqueue Command
 | GFNI               | Galois Field New Instructions
 | HYPERVISOR         | Running under hypervisor
+| PREFETCHI          | PREFETCHIT0/1 instructions
 | VAES               | AVX-512 vector AES instructions
 | VPCLMULQDQ         | Carry-less multiplication quadword
 

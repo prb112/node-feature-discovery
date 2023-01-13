@@ -1,7 +1,7 @@
 ---
 title: "Customization guide"
 layout: default
-sort: 6
+sort: 8
 ---
 
 # Customization guide
@@ -20,6 +20,9 @@ sort: 6
 NFD provides multiple extension points for vendor and application specific
 labeling:
 
+- [`NodeFeature`](#nodefeature-custom-resource) (EXPERIMENTAL) objects can be
+  used to communicate "raw" node features and node labeling requests to
+  nfd-master.
 - [`NodeFeatureRule`](#nodefeaturerule-custom-resource) objects provide a way to
   deploy custom labeling rules via the Kubernetes API
 - [`local`](#local-feature-source) feature source of nfd-worker creates
@@ -27,11 +30,91 @@ labeling:
 - [`custom`](#custom-feature-source) feature source of nfd-worker creates
   labels based on user-specified rules
 
+## NodeFeature custom resource
+
+**EXPERIMENTAL**
+NodeFeature objects provide a way for 3rd party extensions to advertise custom
+features, both as "raw" features that serve as input to
+[NodeFeatureRule](#nodefeaturerule-custom-resource) objects and as feature
+labels directly.
+
+Note that RBAC rules must be created for each extension for them to be able to
+create and manipulate NodeFeature objects in their namespace.
+
+Support for NodeFeature CRD API is enabled with the `-enable-nodefeature-api`
+command line flag. This flag must be specified for both nfd-master and
+nfd-worker as it will disable the gRPC communication between them.
+
+### A NodeFeature example
+
+Consider the following referential example:
+
+```yaml
+apiVersion: nfd.k8s-sigs.io/v1alpha1
+kind: NodeFeature
+metadata:
+  labels:
+    nfd.node.kubernetes.io/node-name: node-1
+  name: vendor-features-for-node-1
+spec:
+  # Features for NodeFeatureRule matching
+  features:
+    flags:
+      vendor.flags:
+        elements:
+          feature-x: {}
+          feature-y: {}
+    attributes:
+      vendor.config:
+        elements:
+          setting-a: "auto"
+          knob-b: "123"
+    instances:
+      vendor.devices:
+        elements:
+        - attributes:
+            model: "dev-1000"
+            vendor: "acme"
+        - attributes:
+            model: "dev-2000"
+            vendor: "acme"
+  # Labels to be created
+  labels:
+    vendor-feature.enabled: "true"
+```
+
+The object targets node named `node-1`. It lists two "flag type" features under
+the `vendor.flags` domain, two "attribute type" features and uder the
+`vendor.config` domain and two "instance type" features under the
+`vendor.devices` domain. This features will not be directly affecting the node
+labels but they will be used as input when be
+[`NodeFeatureRule`](#nodefeaturerule-custom-resource) object are evaluated.
+
+In addition the example requests directly the
+`feature.node.kubenernetes.io/vendor-feature.enabled=true` node label to be
+created.
+
+The `nfd.node.kubernetes.io/node-name=<node-name>` must be in place for each
+NodeFeature objectt as NFD uses it to determine the node which it is targeting.
+
+### Feature types
+
+Features are divided into three different types:
+
+- **flag** features: a set of names without any associated values, e.g. CPUID
+  flags or loaded kernel modules
+- **attribute** features: a set of names each of which has a single value
+  associated with it (essentially a map of key-value pairs), e.g. kernel config
+  flags or os release information
+- **instance** features: a list of instances, each of which has multiple
+  attributes (key-value pairs of their own) associated with it, e.g. PCI or USB
+  devices
+
 ## NodeFeatureRule custom resource
 
 `NodeFeatureRule` objects provide an easy way to create vendor or application
-specific labels. It uses a flexible rule-based mechanism for creating labels
-based on node feature.
+specific labels and taints. It uses a flexible rule-based mechanism for creating
+labels and optionally taints based on node features.
 
 ### A NodeFeatureRule example
 
@@ -74,22 +157,56 @@ Now, on X86 platforms the feature label appears after doing `modprobe dummy` on
 a system and correspondingly the label is removed after `rmmod dummy`. Note a
 re-labeling delay up to the sleep-interval of nfd-worker (1 minute by default).
 
-### NodeFeatureRule controller
+See [Label rule format](#label-rule-format) for detailed description of
+available fields and how to write labeling rules.
+### NodeFeatureRule tainting feature
 
-NFD-Master acts as the controller for `NodeFeatureRule` objects. It applies these
-rules on raw feature data received from nfd-worker instances and creates node
-labels, accordingly.
+This feature is experimental.
 
-**NOTE** nfd-master is stateless and (re-)labelling only happens when a request
-is received from nfd-worker. That is, in practice rules are evaluated and
-labels for each node are created on intervals specified by the
-[`core.sleepInterval`](../reference/worker-configuration-reference#coresleepinterval)
-configuration option (or
-[`-sleep-interval`](../reference/worker-commandline-reference#-sleep-interval)
-command line flag) of nfd-worker instances. This means that modification or
-creation of `NodeFeatureRule` objects does not instantly cause the node labels
-to be updated.  Instead, the changes only come visible in node labels as
-nfd-worker instances send their labelling requests.
+In some circumstances it is desirable keep nodes with specialized hardware away from
+running general workload and instead leave them for workloads that need the specialized
+hardware. One way to achieve it is to taint the nodes with the specialized hardware
+and add corresponding toleration to pods that require the special hardware. NFD
+offers node tainting functionality which is disabled by default. User can define
+one or more custom taints via the `taints` field of the NodeFeatureRule CR. The
+same rule-based mechanism is applied here and the NFD taints only rule matching nodes.
+
+To enable the tainting feature, `--enable-taints` flag needs to be set to `true`.
+If the flag `--enable-taints` is set to `false` (i.e. disabled), taints defined in
+the NodeFeatureRule CR have no effect and will be ignored by the NFD master.
+
+**NOTE**: Before enabling any taints, make sure to edit nfd-worker daemonset to
+tolerate the taints to be created. Otherwise, already running pods that do not
+tolerate the taint are evicted immediately from the node including the nfd-worker
+pod.
+
+Example NodeFeatureRule with custom taints:
+
+```yaml
+apiVersion: nfd.k8s-sigs.io/v1alpha1
+kind: NodeFeatureRule
+metadata:
+  name: my-sample-rule-object
+spec:
+  rules:
+    - name: "my sample taint rule"
+      taints:
+        - effect: PreferNoSchedule
+          key: "feature.node.kubernetes.io/special-node"
+          value: "true"
+        - effect: NoExecute
+          key: "feature.node.kubernetes.io/dedicated-node"
+      matchFeatures:
+        - feature: kernel.loadedmodule
+          matchExpressions:
+            dummy: {op: Exists}
+        - feature: kernel.config
+          matchExpressions:
+            X86: {op: In, value: ["y"]}
+```
+
+In this example, if the `my sample taint rule` rule is matched, `feature.node.kubernetes.io/pci-0300_1d0f.present=true:NoExecute`
+and `feature.node.kubernetes.io/cpu-cpuid.ADX:NoExecute` taints are set on the node.
 
 ## Local feature source
 
@@ -137,7 +254,7 @@ on the nfd-master command line.
 
 ### Hooks
 
-The `local` source executes hooks found in
+**DEPRECATED** The `local` source executes hooks found in
 `/etc/kubernetes/node-feature-discovery/source.d/`. The hook files must be
 executable and they are supposed to print all discovered features in `stdout`.
 With ELF binaries static linking is recommended as the selection of system
@@ -364,6 +481,15 @@ details.
 labels specified in the `labels` field will override anything
 originating from `labelsTemplate`.
 
+### Taints
+
+*taints* is a list of taint entries and each entry can have `key`, `value` and `effect`,
+where the `value` is optional. Effect could be `NoSchedule`, `PreferNoSchedule`
+or `NoExecute`. To learn more about the meaning of these effects, check out k8s [documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/).
+
+**NOTE** taints field is not available for the custom rules of nfd-worker and only
+for NodeFeatureRule objects.
+
 #### Vars
 
 The `.vars` field is a map of values (key-value pairs) to store for subsequent
@@ -465,24 +591,9 @@ true).
 
 ### Available features
 
-#### Feature types
-
-Features are divided into three different types:
-
-- **flag** features: a set of names without any associated values, e.g. CPUID
-  flags or loaded kernel modules
-- **attribute** features: a set of names each of which has a single value
-  associated with it (essentially a map of key-value pairs), e.g. kernel config
-  flags or os release information
-- **instance** features: a list of instances, each of which has multiple
-  attributes (key-value pairs of their own) associated with it, e.g. PCI or USB
-  devices
-
-#### List of features
-
 The following features are available for matching:
 
-| Feature          | Feature type | Elements | Value type | Description
+| Feature          | [Feature type](#feature-types) | Elements | Value type | Description
 | ---------------- | ------------ | -------- | ---------- | -----------
 | **`cpu.cpuid`**  | flag         |          |            | Supported CPU capabilities
 |                  |              | **`<cpuid-flag>`** |  | CPUID flag is present
@@ -510,6 +621,8 @@ The following features are available for matching:
 |                  |              | **`enabled`** | bool  | **DEPRECATED**: use **`se.enabled`** from **`cpu.security`** instead
 | **`cpu.topology`** | attribute  |          |            | CPU topology related features
 | | |          **`hardware_multithreading`** | bool       | Hardware multithreading, such as Intel HTT, is enabled
+| **`cpu.coprocessor`** | attribute |        |            | CPU Coprocessor related features
+| | |          **`nx_gzip`**                 | bool       | Nest Accelerator GZIP support is enabled
 | **`kernel.config`** | attribute |          |            | Kernel configuration options
 |                  |              | **`<config-flag>`** | string | Value of the kconfig option
 | **`kernel.loadedmodule`** | flag |         |            | Loaded kernel modules
