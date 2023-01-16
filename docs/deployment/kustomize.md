@@ -15,9 +15,15 @@ sort: 2
 
 ---
 
-This deployment method requires
+[Kustomize](https://github.com/kubernetes-sigs/kustomize) provides easy
+deployment of NFD. Customization of the deployment is done by maintaining
+declarative overlays on top of the base overlays in NFD.
+
+To follow the deployment instructions here,
 [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl) v1.21 or
-later. The kustomize overlays provided in the repo can be used directly:
+later is required.
+
+The kustomize overlays provided in the repo can be used directly:
 
 ```bash
 kubectl apply -k https://github.com/kubernetes-sigs/node-feature-discovery/deployment/overlays/default?ref={{ site.release }}
@@ -101,9 +107,9 @@ node(s) will run extra job instance(s) to satisfy the request.
 
 ### Master Worker Topologyupdater
 
-NFD Master, NFD worker and NFD Topologyupdater can be configured to be deployed
-as separate pods. The `master-worker-topologyupdater` overlay may be used to
-achieve this:
+NFD-Master, nfd-worker and nfd-topology-updater can be configured to be
+deployed as separate pods. The `master-worker-topologyupdater` overlay may be
+used to achieve this:
 
 ```bash
 kubectl apply -k https://github.com/kubernetes-sigs/node-feature-discovery/deployment/overlays/master-worker-topologyupdater?ref={{ site.release }}
@@ -112,7 +118,7 @@ kubectl apply -k https://github.com/kubernetes-sigs/node-feature-discovery/deplo
 
 ### Topologyupdater
 
-In order to deploy just NFD master and NFD Topologyupdater (without nfd-worker)
+In order to deploy just nfd-topology-updater (without nfd-master and nfd-worker)
 use the `topologyupdater` overlay:
 
 ```bash
@@ -120,10 +126,9 @@ kubectl apply -k https://github.com/kubernetes-sigs/node-feature-discovery/deplo
 
 ```
 
-NFD Topologyupdater can be configured along with the `default` overlay
-(which deploys NFD worker and NFD master) where all the software components
-are deployed as separate pods. The `topologyupdater` overlay may be used
-along with `default` overlay to achieve this:
+NFD-Topology-Updater can be configured along with the `default` overlay
+(which deploys nfd-worker and nfd-master) where all the software components
+are deployed as separate pods;
 
 ```bash
 

@@ -31,9 +31,6 @@ feature (re-)detection, and thus also the interval between node re-labeling. A
 non-positive value implies infinite sleep interval, i.e. no re-detection or
 re-labeling is done.
 
-Note: Overridden by the deprecated `-sleep-interval` command line flag (if
-specified).
-
 Default: `60s`
 
 Example:
@@ -82,8 +79,8 @@ conjunction with `all`. This configuration option affects the generation of
 node labels but not the actual discovery of the underlying feature data that is
 used e.g. in custom/`NodeFeatureRule` rules.
 
-Note: Overridden by the `-label-sources` and `-sources` command line flags and
-the `core.sources` configurations option (if any of them is specified).
+Note: Overridden by the `-label-sources` command line flag and
+the `core.sources` configurations option (if either of them is specified).
 
 Default: `[all]`
 
@@ -122,9 +119,6 @@ Note: The regular expression is only matches against the "basename" part of the
 label, i.e. to the part of the name after '/'. The label prefix (or namespace)
 is omitted.
 
-Note: Overridden by the deprecated `-label-whitelist` command line flag (if
-specified).
-
 Default: `null`
 
 Example:
@@ -137,10 +131,14 @@ core:
 ### core.noPublish
 
 Setting `core.noPublish` to `true` disables all communication with the
-nfd-master. It is effectively a "dry-run" flag: nfd-worker runs feature
-detection normally, but no labeling requests are sent to nfd-master.
+nfd-master and the Kubernetes API server. It is effectively a "dry-run" option.
+NFD-Worker runs feature detection normally, but no labeling requests are sent
+to nfd-master and no [NodeFeature](../usage/custom-resources#nodefeature)
+objects are created or updated in the API server.
 
-Note: Overridden by the `-no-publish` command line flag (if specified).
+Note: Overridden by the
+[`-no-publish`](worker-commandline-reference#-no-publish) command line flag (if
+specified).
 
 Default: `false`
 

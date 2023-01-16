@@ -13,7 +13,7 @@ spec:
     listKind: NodeFeatureList
     plural: nodefeatures
     singular: nodefeature
-  scope: Cluster
+  scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
@@ -36,80 +36,73 @@ spec:
           spec:
             description: NodeFeatureSpec describes a NodeFeature object.
             properties:
-              domains:
-                description: Features is a list per-domain feature sets. This is the
-                  full "raw" features data that nfd-worker has discovered.
-                items:
-                  description: DomainFeatures is the collection of all discovered
-                    features of one domain.
-                  properties:
-                    attributes:
-                      additionalProperties:
-                        description: AttributeFeatureSet is a set of features having
-                          string value.
-                        properties:
-                          elements:
-                            additionalProperties:
-                              type: string
+              features:
+                description: Features is the full "raw" features data that has been
+                  discovered.
+                properties:
+                  attributes:
+                    additionalProperties:
+                      description: AttributeFeatureSet is a set of features having
+                        string value.
+                      properties:
+                        elements:
+                          additionalProperties:
+                            type: string
+                          type: object
+                      required:
+                      - elements
+                      type: object
+                    description: Attributes contains all the attribute-type features
+                      of the node.
+                    type: object
+                  flags:
+                    additionalProperties:
+                      description: FlagFeatureSet is a set of simple features only
+                        containing names without values.
+                      properties:
+                        elements:
+                          additionalProperties:
+                            description: Nil is a dummy empty struct for protobuf
+                              compatibility
                             type: object
-                        required:
-                        - elements
-                        type: object
+                          type: object
+                      required:
+                      - elements
                       type: object
-                    flags:
-                      additionalProperties:
-                        description: FlagFeatureSet is a set of simple features only
-                          containing names without values.
-                        properties:
-                          elements:
-                            additionalProperties:
-                              description: Nil is a dummy empty struct for protobuf
-                                compatibility
-                              type: object
+                    description: Flags contains all the flag-type features of the
+                      node.
+                    type: object
+                  instances:
+                    additionalProperties:
+                      description: InstanceFeatureSet is a set of features each of
+                        which is an instance having multiple attributes.
+                      properties:
+                        elements:
+                          items:
+                            description: InstanceFeature represents one instance of
+                              a complex features, e.g. a device.
+                            properties:
+                              attributes:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                            required:
+                            - attributes
                             type: object
-                        required:
-                        - elements
-                        type: object
+                          type: array
+                      required:
+                      - elements
                       type: object
-                    instances:
-                      additionalProperties:
-                        description: InstanceFeatureSet is a set of features each
-                          of which is an instance having multiple attributes.
-                        properties:
-                          elements:
-                            items:
-                              description: InstanceFeature represents one instance
-                                of a complex features, e.g. a device.
-                              properties:
-                                attributes:
-                                  additionalProperties:
-                                    type: string
-                                  type: object
-                              required:
-                              - attributes
-                              type: object
-                            type: array
-                        required:
-                        - elements
-                        type: object
-                      type: object
-                    name:
-                      type: string
-                  required:
-                  - attributes
-                  - flags
-                  - instances
-                  - name
-                  type: object
-                type: array
-              labelsRequest:
+                    description: Instances contains all the instance-type features
+                      of the node.
+                    type: object
+                type: object
+              labels:
                 additionalProperties:
                   type: string
-                description: LabelsRequest is the set of node labels that are requested
-                  to be generatd.
+                description: Labels is the set of node labels that are requested to
+                  be created.
                 type: object
-            required:
-            - domains
             type: object
         required:
         - spec
@@ -130,6 +123,8 @@ spec:
     kind: NodeFeatureRule
     listKind: NodeFeatureRuleList
     plural: nodefeaturerules
+    shortNames:
+    - nfr
     singular: nodefeaturerule
   scope: Cluster
   versions:
@@ -196,8 +191,8 @@ spec:
                                       the input and an array of values that the operator
                                       evaluates the input against. \n NB: CreateMatchExpression
                                       or MustCreateMatchExpression() should be used
-                                      for creating new instances. NB: Validate() must
-                                      be called if Op or Value fields are modified
+                                      for creating new instances. \n NB: Validate()
+                                      must be called if Op or Value fields are modified
                                       or if a new instance is created from scratch
                                       without using the helper functions."
                                     properties:
@@ -262,8 +257,8 @@ spec:
                                 and an array of values that the operator evaluates
                                 the input against. \n NB: CreateMatchExpression or
                                 MustCreateMatchExpression() should be used for creating
-                                new instances. NB: Validate() must be called if Op
-                                or Value fields are modified or if a new instance
+                                new instances. \n NB: Validate() must be called if
+                                Op or Value fields are modified or if a new instance
                                 is created from scratch without using the helper functions."
                               properties:
                                 op:
@@ -305,6 +300,35 @@ spec:
                     name:
                       description: Name of the rule.
                       type: string
+                    taints:
+                      description: Taints to create if the rule matches.
+                      items:
+                        description: The node this Taint is attached to has the "effect"
+                          on any pod that does not tolerate the Taint.
+                        properties:
+                          effect:
+                            description: Required. The effect of the taint on pods
+                              that do not tolerate the taint. Valid effects are NoSchedule,
+                              PreferNoSchedule and NoExecute.
+                            type: string
+                          key:
+                            description: Required. The taint key to be applied to
+                              a node.
+                            type: string
+                          timeAdded:
+                            description: TimeAdded represents the time at which the
+                              taint was added. It is only written for NoExecute taints.
+                            format: date-time
+                            type: string
+                          value:
+                            description: The taint value corresponding to the taint
+                              key.
+                            type: string
+                        required:
+                        - effect
+                        - key
+                        type: object
+                      type: array
                     vars:
                       additionalProperties:
                         type: string

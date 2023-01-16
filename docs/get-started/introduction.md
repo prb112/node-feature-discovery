@@ -17,7 +17,7 @@ sort: 1
 
 This software enables node feature discovery for Kubernetes. It detects
 hardware features available on each node in a Kubernetes cluster, and
-advertises those features using node labels.
+advertises those features using node labels and optionally node taints.
 
 NFD consists of three software components:
 
@@ -42,10 +42,18 @@ instance of nfd-worker is supposed to be running on each node of the cluster,
 NFD-Topology-Updater is a daemon responsible for examining allocated
 resources on a worker node to account for resources available to be allocated
 to new pod on a per-zone basis (where a zone can be a NUMA node). It then
-communicates the information to nfd-master which does the
-[NodeResourceTopology CR](#noderesourcetopology-cr) creation corresponding
-to all the nodes in the cluster. One instance of nfd-topology-updater is
+creates or updates a
+[NodeResourceTopology](../usage/custom-resources#noderesourcetopology) custom
+resource object specific to this node. One instance of nfd-topology-updater is
 supposed to be running on each node of the cluster.
+
+## NFD-Topology-Garbage-Collector
+
+NFD-Topology-Garbage-Collector is a daemon responsible for cleaning obsolete
+[NodeResourceTopology](../usage/custom-resources#noderesourcetopology) objects,
+obsolete means that there is no corresponding worker node.
+
+One instance of nfd-topology-gc is supposed to be running in the cluster.
 
 ## Feature Discovery
 
@@ -102,49 +110,17 @@ command line flag affects the annotation names
 Unapplicable annotations are not created, i.e. for example master.version is
 only created on nodes running nfd-master.
 
-## NodeResourceTopology CR
+## Custom resources
 
-When run with NFD-Topology-Updater, NFD creates CR instances corresponding to
-node resource hardware topology such as:
+NFD takes use of some Kubernetes Custom Resources.
 
- ```yaml
-apiVersion: topology.node.k8s.io/v1alpha1
-kind: NodeResourceTopology
-metadata:
-  name: node1
-topologyPolicies: ["SingleNUMANodeContainerLevel"]
-zones:
-  - name: node-0
-    type: Node
-    resources:
-      - name: cpu
-        capacity: 20
-        allocatable: 16
-        available: 10
-      - name: vendor/nic1
-        capacity: 3
-        allocatable: 3
-        available: 3
-  - name: node-1
-    type: Node
-    resources:
-      - name: cpu
-        capacity: 30
-        allocatable: 30
-        available: 15
-      - name: vendor/nic2
-        capacity: 6
-        allocatable: 6
-        available: 6
-  - name: node-2
-    type: Node
-    resources:
-      - name: cpu
-        capacity: 30
-        allocatable: 30
-        available: 15
-      - name: vendor/nic1
-        capacity: 3
-        allocatable: 3
-        available: 3
- ```
+[NodeFeature](../usage/custom-resources#nodefeature)s (EXPERIMENTAL)
+can be used for representing node features and requesting node labels to be
+generated.
+
+NFD-Master uses [NodeFeatureRule](../usage/custom-resources#nodefeaturerule)s
+for custom labeling of nodes.
+
+NFD-Topology-Updater creates
+[NodeResourceTopology](../usage/custom-resources#noderesourcetopology) objects
+that describe the hardware topology of node resources.

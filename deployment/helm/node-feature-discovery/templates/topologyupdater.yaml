@@ -40,21 +40,20 @@ spec:
         command:
           - "nfd-topology-updater"
         args:
-          - "--server={{ include "node-feature-discovery.fullname" . }}-master:{{ .Values.master.service.port }}"
           {{- if .Values.topologyUpdater.updateInterval | empty | not }}
-          - "--sleep-interval={{ .Values.topologyUpdater.updateInterval }}"
+          - "-sleep-interval={{ .Values.topologyUpdater.updateInterval }}"
           {{- else }}
-          - "--sleep-interval=3s"
+          - "-sleep-interval=3s"
           {{- end }}
           {{- if .Values.topologyUpdater.watchNamespace | empty | not }}
-          - "--watch-namespace={{ .Values.topologyUpdater.watchNamespace }}"
+          - "-watch-namespace={{ .Values.topologyUpdater.watchNamespace }}"
           {{- else }}
-          - "--watch-namespace=*"
+          - "-watch-namespace=*"
           {{- end }}
           {{- if .Values.tls.enable }}
-          - "--ca-file=/etc/kubernetes/node-feature-discovery/certs/ca.crt"
-          - "--key-file=/etc/kubernetes/node-feature-discovery/certs/tls.key"
-          - "--cert-file=/etc/kubernetes/node-feature-discovery/certs/tls.crt"
+          - "-ca-file=/etc/kubernetes/node-feature-discovery/certs/ca.crt"
+          - "-key-file=/etc/kubernetes/node-feature-discovery/certs/tls.key"
+          - "-cert-file=/etc/kubernetes/node-feature-discovery/certs/tls.crt"
           {{- end }}
         volumeMounts:
         - name: kubelet-config
@@ -68,6 +67,9 @@ spec:
           mountPath: "/etc/kubernetes/node-feature-discovery/certs"
           readOnly: true
         {{- end }}
+        - name: nfd-topology-updater-conf
+          mountPath: "/etc/kubernetes/node-feature-discovery"
+          readOnly: true
 
         resources:
       {{- toYaml .Values.topologyUpdater.resources | nindent 12 }}
@@ -91,11 +93,18 @@ spec:
           {{- else }}
           path: /var/lib/kubelet/pod-resources/kubelet.sock
           {{- end }}
+      - name: nfd-topology-updater-conf
+        configMap:
+          name: {{ include "node-feature-discovery.fullname" . }}-topology-updater-conf
+          items:
+            - key: nfd-topology-updater.conf
+              path: nfd-topology-updater.conf
       {{- if .Values.tls.enable }}
       - name: nfd-topology-updater-cert
         secret:
           secretName: nfd-topology-updater-cert
       {{- end }}
+
 
     {{- with .Values.topologyUpdater.nodeSelector }}
       nodeSelector:

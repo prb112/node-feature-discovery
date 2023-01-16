@@ -43,4 +43,13 @@ const (
 
 	// WorkerVersionAnnotation is the annotation that holds the version of nfd-worker running on the node
 	WorkerVersionAnnotation = AnnotationNs + "/worker.version"
+
+	// NodeTaintsAnnotation is the annotation that holds the taints that nfd-master set on the node
+	NodeTaintsAnnotation = AnnotationNs + "/taints"
+
+	// NodeFeatureObjNodeNameLabel is the label that specifies which node the
+	// NodeFeature object is targeting. Creators of NodeFeature objects must
+	// set this label and consumers of the objects are supposed to use the
+	// label for filtering features designated for a certain node.
+	NodeFeatureObjNodeNameLabel = "nfd.node.kubernetes.io/node-name"
 )

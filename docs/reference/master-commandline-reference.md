@@ -137,6 +137,32 @@ nfd-master -verify-node-name -ca-file=/opt/nfd/ca.crt \
     -cert-file=/opt/nfd/master.crt -key-file=/opt/nfd/master.key
 ```
 
+### -enable-nodefeature-api
+
+The `-enable-nodefeature-api` flag enables the
+[NodeFeature](../usage/custom-resources#nodefeature) CRD API for receiving
+feature requests. This will also automatically disable the gRPC interface.
+
+Default: false
+
+Example:
+
+```bash
+nfd-master -enable-nodefeature-api
+```
+
+### -enable-taints
+
+The `-enable-taints` flag enables/disables node tainting feature of NFD.
+
+Default: *false*
+
+Example:
+
+```bash
+nfd-master -enable-taints=true
+```
+
 ### -no-publish
 
 The `-no-publish` flag disables updates to the Node objects in the Kubernetes
@@ -151,19 +177,24 @@ Example:
 nfd-master -no-publish
 ```
 
-### -featurerules-controller
+### -crd-controller
 
-The `-featurerules-controller` flag controlers the processing of
-NodeFeatureRule objects, effectively enabling/disabling labels from these
-custom labeling rules.
+The `-crd-controller` flag specifies whether the NFD CRD API controller is
+enabled or not. The controller is responsible for processing
+[NodeFeature](../usage/custom-resources#nodefeature) and
+[NodeFeatureRule](../usage/custom-resources#nodefeaturerule) objects.
 
 Default: *true*
 
 Example:
 
 ```bash
-nfd-master -featurerules-controller=false
+nfd-master -crd-controller=false
 ```
+
+### -featurerules-controller
+
+**DEPRECATED**: use [`-crd-controller`](#-crd-controller) instead.
 
 ### -label-whitelist
 

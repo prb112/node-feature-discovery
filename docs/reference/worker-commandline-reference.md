@@ -122,6 +122,23 @@ Example:
 nfd-worker -key-file=/opt/nfd/worker.key -cert-file=/opt/nfd/worker.crt -ca-file=/opt/nfd/ca.crt
 ```
 
+### -kubeconfig
+
+The `-kubeconfig` flag specifies the kubeconfig to use for connecting to the
+Kubernetes API server. It is only needed for manipulating
+[NodeFeature](../usage/custom-resources#nodefeature) objects, and thus the flag
+only takes effect when
+[`-enable-nodefeature-api`](#-enable-nodefeature-api)) is specified. An empty
+value (which is also the default) implies in-cluster kubeconfig.
+
+Default: *empty*
+
+Example:
+
+```bash
+nfd-worker -kubeconfig ${HOME}/.kube/config
+```
+
 ### -server-name-override
 
 The `-server-name-override` flag specifies the common name (CN) which to
@@ -178,15 +195,34 @@ Example:
 nfd-worker -label-sources=kernel,system,local
 ```
 
-### -sources
+### -enable-nodefeature-api
 
-**DEPRECATED**: use [`-label-sources`](#-label-sources) instead.
+The `-enable-nodefeature-api` flag enables the experimental
+[NodeFeature](../usage/custom-resources#nodefeature) CRD API
+for communicating with nfd-master. This will also automatically disable the
+gRPC communication to nfd-master. When enabled, nfd-worker will create per-node
+NodeFeature objects the contain all discovered node features and the set of
+feature labels to be created.
+
+Default: false
+
+Example:
+
+```bash
+nfd-worker -enable-nodefeature-api
+```
 
 ### -no-publish
 
-The `-no-publish` flag disables all communication with the nfd-master, making
-it a "dry-run" flag for nfd-worker. NFD-Worker runs feature detection normally,
-but no labeling requests are sent to nfd-master.
+The `-no-publish` flag disables all communication with the nfd-master and the
+Kubernetes API server. It is effectively a "dry-run" flag for nfd-worker.
+NFD-Worker runs feature detection normally, but no labeling requests are sent
+to nfd-master and no NodeFeature objects are created or updated in the API
+server.
+
+Note: This flag takes precedence over the
+[`core.noPublish`](worker-configuration-reference#corenopublish)
+configuration file option.
 
 Default: *false*
 
@@ -195,29 +231,6 @@ Example:
 ```bash
 nfd-worker -no-publish
 ```
-
-### -label-whitelist
-
-The `-label-whitelist` specifies a regular expression for filtering feature
-labels based on their name. Each label must match against the given reqular
-expression in order to be published.
-
-Note: The regular expression is only matches against the "basename" part of the
-label, i.e. to the part of the name after '/'. The label namespace is omitted.
-
-Note: This flag takes precedence over the `core.labelWhiteList` configuration
-file option.
-
-Default: *empty*
-
-Example:
-
-```bash
-nfd-worker -label-whitelist='.*cpuid\.'
-```
-
-**DEPRECATED**: you should use the `core.labelWhiteList` option in the
-configuration file, instead.
 
 ### -oneshot
 
@@ -231,26 +244,6 @@ Example:
 ```bash
 nfd-worker -oneshot -no-publish
 ```
-
-### -sleep-interval
-
-The `-sleep-interval` specifies the interval between feature re-detection (and
-node re-labeling). A non-positive value implies infinite sleep interval, i.e.
-no re-detection or re-labeling is done.
-
-Note: This flag takes precedence over the `core.sleepInterval` configuration
-file option.
-
-Default: 60s
-
-Example:
-
-```bash
-nfd-worker -sleep-interval=1h
-```
-
-**DEPRECATED**: you should use the `core.sleepInterval` option in the
-configuration file, instead.
 
 ### Logging
 

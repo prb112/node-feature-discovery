@@ -4,11 +4,11 @@ kind: Kustomization
 namespace: node-feature-discovery
 
 bases:
-- ../../base/rbac
 - ../../base/rbac-topologyupdater
-- ../../base/master
+- ../../base/rbac-topology-gc
 - ../../base/noderesourcetopologies-crd
 - ../../base/topologyupdater-daemonset
+- ../../base/topology-gc
 
 resources:
 - namespace.yaml
@@ -16,3 +16,4 @@ resources:
 components:
 - ../../components/common
 - ../../components/topology-updater
+- ../../components/topology-updater-config
